@@ -47,6 +47,17 @@ gaming-fusion-hub/
 │   ├── data/
 │   │   ├── blogs.js
 │   │   └── games.js
+│   ├── games/
+│   │   ├── BlockBreaker.jsx
+│   │   ├── CyberRunner.jsx
+│   │   ├── HauntedManor.jsx
+│   │   ├── NeonRacing.jsx
+│   │   ├── PuzzleMaster.jsx
+│   │   ├── ShadowAdventure.jsx
+│   │   └── SpaceDefender.jsx
+│   │   ├── SpeedCircuit.jsx
+│   │   ├── TankBattle.jsx
+│   │   └── ZombieSurvival.jsx
 │   ├── pages/
 │   │   ├── AboutPage.jsx
 │   │   ├── BlogDetails.jsx
