@@ -430,7 +430,7 @@ const CyberRunner = ({ isPlaying, isPaused, onGameStateChange }) => {
     return () => clearInterval(gameLoopRef.current);
   }, [internalGameState.gameRunning, isPaused, updateGame, render]);
 
-  // Keyboard handlers
+  // Keyboard and touch handlers
   useEffect(() => {
     const handleKeyDown = (e) => {
       keys.current[e.key] = true;
@@ -443,28 +443,85 @@ const CyberRunner = ({ isPlaying, isPaused, onGameStateChange }) => {
       keys.current[e.key] = false;
     };
 
+    // Touch handler for mobile jump
+    const handleTouch = (e) => {
+      if (internalGameState.gameRunning && player.current.onGround) {
+        player.current.velocityY = jumpPower;
+        player.current.jumping = true;
+        player.current.onGround = false;
+      }
+      e.preventDefault();
+    };
+
+    const canvas = canvasRef.current;
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
+
+    if (canvas) {
+      canvas.addEventListener("touchstart", handleTouch, { passive: false });
+      canvas.addEventListener("click", handleTouch);
+    }
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
+      if (canvas) {
+        canvas.removeEventListener("touchstart", handleTouch);
+        canvas.removeEventListener("click", handleTouch);
+      }
     };
-  }, []);
+  }, [internalGameState.gameRunning]);
 
   return (
-    <div className="w-full h-full flex items-center justify-center">
+    <div className="w-full h-full flex flex-col items-center justify-center">
       <canvas
         ref={canvasRef}
         width={800}
         height={500}
-        className="max-w-full max-h-full border-2 border-cyan-500 rounded-lg shadow-lg"
+        className="max-w-full max-h-full border-2 border-cyan-500 rounded-lg shadow-lg touch-none cursor-pointer"
         style={{
           boxShadow: "0 0 20px rgba(6, 182, 212, 0.5)",
           background:
             "linear-gradient(135deg, #0a0a2e 0%, #16213e 50%, #0f3460 100%)",
+          touchAction: "manipulation",
         }}
       />
+
+      {/* Mobile Jump Button */}
+      <div className="flex md:hidden mt-4">
+        <button
+          onTouchStart={(e) => {
+            if (internalGameState.gameRunning && player.current.onGround) {
+              player.current.velocityY = jumpPower;
+              player.current.jumping = true;
+              player.current.onGround = false;
+            }
+            e.preventDefault();
+          }}
+          onClick={(e) => {
+            if (internalGameState.gameRunning && player.current.onGround) {
+              player.current.velocityY = jumpPower;
+              player.current.jumping = true;
+              player.current.onGround = false;
+            }
+            e.preventDefault();
+          }}
+          className="px-8 py-4 bg-cyan-500 text-white rounded-lg font-bold text-lg active:bg-cyan-600 select-none"
+          style={{ touchAction: "manipulation" }}
+        >
+          JUMP
+        </button>
+      </div>
+
+      {/* Instructions */}
+      <div className="mt-2 text-center text-gray-400 text-sm">
+        <p className="md:hidden">
+          Tap screen or JUMP button to jump over obstacles
+        </p>
+        <p className="hidden md:block">
+          Press SPACE or UP ARROW to jump over obstacles
+        </p>
+      </div>
     </div>
   );
 };

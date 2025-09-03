@@ -303,7 +303,7 @@ const BlockBreaker = ({ isPlaying, isPaused, onGameStateChange }) => {
     return () => clearInterval(gameLoopRef.current);
   }, [internalGameState.gameRunning, isPaused, updateGame, render]);
 
-  // Keyboard handlers
+  // Keyboard and touch handlers
   useEffect(() => {
     const handleKeyDown = (e) => {
       keys.current[e.key] = true;
@@ -313,27 +313,108 @@ const BlockBreaker = ({ isPlaying, isPaused, onGameStateChange }) => {
       keys.current[e.key] = false;
     };
 
+    // Touch/Mouse handlers for mobile
+    const handlePointerMove = (e) => {
+      if (!internalGameState.gameRunning) return;
+
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+
+      let clientX;
+      if (e.touches) {
+        clientX = e.touches[0].clientX;
+      } else {
+        clientX = e.clientX;
+      }
+
+      const x = (clientX - rect.left) * scaleX;
+      paddle.current.x = Math.max(
+        0,
+        Math.min(
+          canvas.width - paddle.current.width,
+          x - paddle.current.width / 2
+        )
+      );
+
+      e.preventDefault();
+    };
+
+    const canvas = canvasRef.current;
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
+
+    if (canvas) {
+      // Touch events
+      canvas.addEventListener("touchmove", handlePointerMove, {
+        passive: false,
+      });
+      canvas.addEventListener("touchstart", handlePointerMove, {
+        passive: false,
+      });
+      // Mouse events for desktop
+      canvas.addEventListener("mousemove", handlePointerMove);
+    }
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
+      if (canvas) {
+        canvas.removeEventListener("touchmove", handlePointerMove);
+        canvas.removeEventListener("touchstart", handlePointerMove);
+        canvas.removeEventListener("mousemove", handlePointerMove);
+      }
     };
-  }, []);
+  }, [internalGameState.gameRunning]);
 
   return (
-    <div className="w-full h-full flex items-center justify-center">
+    <div className="w-full h-full flex flex-col items-center justify-center">
       <canvas
         ref={canvasRef}
         width={700}
         height={500}
-        className="max-w-full max-h-full border-2 border-blue-500 rounded-lg shadow-lg"
+        className="max-w-full max-h-full border-2 border-blue-500 rounded-lg shadow-lg touch-none"
         style={{
           boxShadow: "0 0 20px rgba(14, 165, 233, 0.5)",
           background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)",
         }}
       />
+
+      {/* Mobile Controls */}
+      <div className="flex md:hidden mt-4 space-x-4">
+        <button
+          onTouchStart={() => (keys.current["ArrowLeft"] = true)}
+          onTouchEnd={() => (keys.current["ArrowLeft"] = false)}
+          onMouseDown={() => (keys.current["ArrowLeft"] = true)}
+          onMouseUp={() => (keys.current["ArrowLeft"] = false)}
+          className="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold active:bg-blue-600 select-none"
+          style={{ touchAction: "manipulation" }}
+        >
+          ←
+        </button>
+        <button
+          onTouchStart={() => (keys.current["ArrowRight"] = true)}
+          onTouchEnd={() => (keys.current["ArrowRight"] = false)}
+          onMouseDown={() => (keys.current["ArrowRight"] = true)}
+          onMouseUp={() => (keys.current["ArrowRight"] = false)}
+          className="px-6 py-3 bg-blue-500 text-white rounded-lg font-semibold active:bg-blue-600 select-none"
+          style={{ touchAction: "manipulation" }}
+        >
+          →
+        </button>
+      </div>
+
+      {/* Instructions */}
+      <div className="mt-2 text-center text-gray-400 text-sm">
+        <p className="md:hidden">
+          Touch and drag to move paddle or use buttons
+        </p>
+        <p className="hidden md:block">
+          Use arrow keys or mouse to move paddle
+        </p>
+      </div>
     </div>
   );
 };
