@@ -75,7 +75,7 @@ From Flash's creative explosion to HTML5's technical prowess, browser games cont
 
 The accessibility and immediacy of browser games ensure they'll remain a vital part of the gaming ecosystem, bridging the gap between casual and hardcore gaming experiences.`,
     author: "Alex Rodriguez",
-    publishDate: "2024-02-15",
+    publishDate: "2025-02-15",
     readTime: "8 min read",
     category: "Technology",
     tags: ["HTML5", "Flash", "Web Gaming", "Technology", "Game Development"],
@@ -85,13 +85,13 @@ The accessibility and immediacy of browser games ensure they'll remain a vital p
   },
   {
     id: 2,
-    title: "Top 10 Browser Games You Must Play in 2024",
-    slug: "top-10-browser-games-2024",
+    title: "Top 10 Browser Games You Must Play in 2025",
+    slug: "top-10-browser-games-2025",
     excerpt:
       "Our curated list of the best browser games available right now. From action-packed shooters to mind-bending puzzles, discover your next gaming obsession.",
-    content: `# Top 10 Browser Games You Must Play in 2024
+    content: `# Top 10 Browser Games You Must Play in 2025
 
-Browser gaming has reached new heights in 2024, with developers creating experiences that rival traditional PC and mobile games. Here's our carefully curated list of must-play browser games.
+Browser gaming has reached new heights in 2025, with developers creating experiences that rival traditional PC and mobile games. Here's our carefully curated list of must-play browser games.
 
 ## 1. Neon Racing Championship
 
@@ -235,16 +235,16 @@ Browser games continue to evolve with new technologies:
 
 ## Conclusion
 
-2024 has been an incredible year for browser gaming. These 10 titles represent the best of what's currently available, showcasing the medium's potential for delivering high-quality gaming experiences.
+2025 has been an incredible year for browser gaming. These 10 titles represent the best of what's currently available, showcasing the medium's potential for delivering high-quality gaming experiences.
 
 Whether you're looking for a quick gaming session during a break or an extended adventure, these browser games offer something for every type of player. The best part? They're all just a click away!
 
 Ready to start playing? Visit our game library to experience these amazing titles firsthand.`,
     author: "Sarah Chen",
-    publishDate: "2024-02-10",
+    publishDate: "2025-02-10",
     readTime: "12 min read",
     category: "Reviews",
-    tags: ["Gaming", "Reviews", "Browser Games", "2024", "Top Lists"],
+    tags: ["Gaming", "Reviews", "Browser Games", "2025", "Top Lists"],
     image: "/api/placeholder/800/400",
     views: 4521,
     likes: 287,
@@ -475,7 +475,7 @@ The key is finding balance—leveraging gaming's psychological benefits while ma
 
 Whether you're a casual player or gaming enthusiast, understanding the psychology behind your favorite pastime can enhance your appreciation and help you game more mindfully.`,
     author: "Dr. Michael Thompson",
-    publishDate: "2024-02-05",
+    publishDate: "2025-02-05",
     readTime: "15 min read",
     category: "Psychology",
     tags: ["Psychology", "Gaming", "Behavior", "Mental Health", "Science"],
@@ -488,7 +488,7 @@ Whether you're a casual player or gaming enthusiast, understanding the psycholog
     title: "Mobile vs Browser Games: The Ultimate Showdown",
     slug: "mobile-vs-browser-games-ultimate-showdown",
     excerpt:
-      "Compare the pros and cons of mobile and browser gaming. Which platform offers the better gaming experience in 2024?",
+      "Compare the pros and cons of mobile and browser gaming. Which platform offers the better gaming experience in 2025?",
     content: `# Mobile vs Browser Games: The Ultimate Showdown
 
 The gaming landscape has dramatically shifted in recent years, with mobile and browser games emerging as dominant forces. But which platform truly offers the superior gaming experience? Let's dive deep into this epic comparison.
@@ -746,7 +746,7 @@ As gamers, we benefit from this healthy competition, enjoying better games acros
 
 What's your preference? Are you team browser for instant access, or team mobile for optimized experiences? The choice is yours!`,
     author: "Jessica Park",
-    publishDate: "2024-01-28",
+    publishDate: "2025-01-28",
     readTime: "18 min read",
     category: "Comparison",
     tags: [
@@ -948,7 +948,7 @@ Remember: every expert was once a beginner. Keep experimenting, learning, and mo
 
 Share your games, ask questions, and inspire others to start their own development adventures. Happy coding!`,
     author: "David Kim",
-    publishDate: "2024-01-20",
+    publishDate: "2025-01-20",
     readTime: "25 min read",
     category: "Tutorial",
     tags: [

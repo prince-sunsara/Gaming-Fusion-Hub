@@ -72,29 +72,22 @@ const AboutPage = () => {
 
   const team = [
     {
-      name: "Alex Rodriguez",
+      name: "Mitesh Amin",
       role: "Founder & CEO",
-      description: "Visionary leader with 10+ years in gaming industry",
-      avatar: "🎮",
-    },
-    {
-      name: "Sarah Chen",
-      role: "Lead Developer",
-      description:
-        "Full-stack developer specializing in web gaming technologies",
+      description: "Full-stack developer specializing in web technologies",
       avatar: "👩‍💻",
     },
     {
-      name: "Michael Thompson",
-      role: "Game Designer",
-      description: "Creative mind behind our most popular game mechanics",
-      avatar: "🎨",
+      name: "Prince Sunsara",
+      role: "Lead Developer",
+      description: "Visionary leader in all our web development tasks",
+      avatar: "🎮",
     },
     {
-      name: "Jessica Park",
-      role: "Community Manager",
-      description: "Connecting with players and building our gaming community",
-      avatar: "🤝",
+      name: "Abhay Raval",
+      role: "Community Member",
+      description: "Creative mind behind our most popular game mechanics",
+      avatar: "🎨",
     },
   ];
 
@@ -223,7 +216,7 @@ const AboutPage = () => {
                   of gaming could be shared instantly.
                 </p>
                 <p>
-                  Starting in 2024, we set out to curate and create the finest
+                  Starting in 2025, we set out to curate and create the finest
                   collection of browser-based games. Every title on our platform
                   is carefully selected for its entertainment value, technical
                   excellence, and accessibility across all devices and browsers.
@@ -241,7 +234,7 @@ const AboutPage = () => {
               <div className="gaming-card bg-gradient-to-br from-primary-500/20 to-accent-500/20 rounded-xl p-12 text-center border border-primary-500/30">
                 <div className="text-8xl mb-6">🚀</div>
                 <h3 className="text-2xl font-bold text-white mb-4">
-                  Launched 2024
+                  Launched 2025
                 </h3>
                 <p className="text-gray-300">
                   From concept to global platform in record time, powered by
@@ -294,7 +287,7 @@ const AboutPage = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {team.map(({ name, role, description, avatar }) => (
               <div
                 key={name}
