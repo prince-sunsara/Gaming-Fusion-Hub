@@ -1,102 +1,95 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 
-const NeonRacing = () => {
+const NeonRacing = ({ isPlaying, isPaused, onGameStateChange }) => {
   const canvasRef = useRef(null);
   const gameLoopRef = useRef(null);
 
-  const [gameState, setGameState] = useState({
+  const [internalGameState, setInternalGameState] = useState({
     score: 0,
-    speed: 5,
-    lap: 1,
-    position: 1,
+    lives: 3,
+    level: 1,
     gameRunning: false,
     gameOver: false,
-    raceFinished: false,
+    gameWon: false,
   });
 
   // Game objects
   const player = useRef({
-    x: 200,
+    x: 375,
     y: 400,
-    width: 25,
-    height: 45,
-    speed: 0,
-    maxSpeed: 8,
-    acceleration: 0.3,
-    friction: 0.1,
-    rotation: 0,
-    rotationSpeed: 0.1,
+    width: 50,
+    height: 80,
+    speed: 6,
+    targetX: 375,
   });
 
-  const opponents = useRef([]);
-  const trackSegments = useRef([]);
+  const obstacles = useRef([]);
+  const powerUps = useRef([]);
+  const roadLines = useRef([]);
   const particles = useRef([]);
+
+  // Game settings
+  const lanes = [200, 300, 400, 500, 600]; // 5 lanes
+  const gameSpeed = useRef(5);
+  const scoreCounter = useRef(0);
   const keys = useRef({});
-  const cameraOffset = useRef(0);
 
   // Initialize game
   const initGame = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    player.current.x = 200;
-    player.current.y = 400;
-    player.current.speed = 0;
-    player.current.rotation = 0;
+    // Reset player
+    player.current = {
+      x: 375,
+      y: 400,
+      width: 50,
+      height: 80,
+      speed: 6,
+      targetX: 375,
+    };
 
-    opponents.current = [];
+    // Clear arrays
+    obstacles.current = [];
+    powerUps.current = [];
+    roadLines.current = [];
     particles.current = [];
-    cameraOffset.current = 0;
 
-    // Create track segments (simple oval)
-    trackSegments.current = [];
-    const centerX = canvas.width / 2;
-    const centerY = canvas.height / 2;
-    const radiusX = 300;
-    const radiusY = 180;
+    // Reset game speed and score
+    gameSpeed.current = 5;
+    scoreCounter.current = 0;
 
-    for (let i = 0; i < 360; i += 10) {
-      const angle = (i * Math.PI) / 180;
-      trackSegments.current.push({
-        x: centerX + Math.cos(angle) * radiusX,
-        y: centerY + Math.sin(angle) * radiusY,
-        angle: angle + Math.PI / 2,
-        segment: i / 10,
+    // Create road lines
+    for (let i = 0; i < 20; i++) {
+      roadLines.current.push({
+        x: 150 + i * 20,
+        y: i * 50,
+        width: 4,
+        height: 30,
       });
     }
 
-    // Create AI opponents
-    for (let i = 0; i < 5; i++) {
-      opponents.current.push({
-        x: 180 + i * 30,
-        y: 350 - i * 40,
-        width: 22,
-        height: 40,
-        speed: 4 + Math.random() * 2,
-        trackPosition: Math.random() * trackSegments.current.length,
-        color: `hsl(${Math.random() * 360}, 70%, 60%)`,
-        lapProgress: 0,
+    // Create initial obstacles
+    for (let i = 0; i < 3; i++) {
+      const lane = lanes[Math.floor(Math.random() * lanes.length)];
+      obstacles.current.push({
+        x: lane - 25,
+        y: -150 - i * 200,
+        width: 50,
+        height: 80,
+        lane: lane,
       });
     }
+
+    // Create initial power-ups
+    powerUps.current.push({
+      x: lanes[Math.floor(Math.random() * lanes.length)] - 15,
+      y: -300,
+      width: 30,
+      height: 30,
+      type: "speed",
+    });
   }, []);
-
-  // Create particle effect
-  const createParticles = (x, y, color, count = 5, type = "spark") => {
-    for (let i = 0; i < count; i++) {
-      particles.current.push({
-        x: x + (Math.random() - 0.5) * 20,
-        y: y + (Math.random() - 0.5) * 20,
-        vx: (Math.random() - 0.5) * 12,
-        vy: (Math.random() - 0.5) * 12,
-        life: type === "exhaust" ? 15 : 25,
-        maxLife: type === "exhaust" ? 15 : 25,
-        color: color,
-        size:
-          type === "exhaust" ? Math.random() * 2 + 1 : Math.random() * 3 + 1,
-        type: type,
-      });
-    }
-  };
 
   // Collision detection
   const checkCollision = (rect1, rect2) => {
@@ -108,109 +101,192 @@ const NeonRacing = () => {
     );
   };
 
+  // Create particle effect
+  const createParticles = (x, y, color, count = 8) => {
+    for (let i = 0; i < count; i++) {
+      particles.current.push({
+        x: x,
+        y: y,
+        velocityX: (Math.random() - 0.5) * 8,
+        velocityY: Math.random() * -5 - 2,
+        life: 30,
+        color: color,
+        size: Math.random() * 3 + 1,
+      });
+    }
+  };
+
+  // Handle input (keyboard and touch)
+  const handleInput = useCallback(() => {
+    if (!internalGameState.gameRunning) return;
+
+    // Keyboard controls
+    if (keys.current["ArrowLeft"]) {
+      const currentLaneIndex = lanes.findIndex(
+        (lane) => Math.abs(lane - 25 - player.current.targetX) < 10
+      );
+      if (currentLaneIndex > 0) {
+        player.current.targetX = lanes[currentLaneIndex - 1] - 25;
+      }
+    }
+    if (keys.current["ArrowRight"]) {
+      const currentLaneIndex = lanes.findIndex(
+        (lane) => Math.abs(lane - 25 - player.current.targetX) < 10
+      );
+      if (currentLaneIndex < lanes.length - 1) {
+        player.current.targetX = lanes[currentLaneIndex + 1] - 25;
+      }
+    }
+
+    // Smooth movement to target
+    const dx = player.current.targetX - player.current.x;
+    if (Math.abs(dx) > 2) {
+      player.current.x += dx * 0.2;
+    } else {
+      player.current.x = player.current.targetX;
+    }
+  }, [internalGameState.gameRunning]);
+
   // Game update loop
   const updateGame = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || !gameState.gameRunning) return;
+    if (!internalGameState.gameRunning) return;
 
-    // Player input
-    if (keys.current["ArrowUp"] || keys.current["w"]) {
-      player.current.speed = Math.min(
-        player.current.speed + player.current.acceleration,
-        player.current.maxSpeed
-      );
-      // Create exhaust particles
-      if (Math.random() < 0.3) {
-        createParticles(
-          player.current.x + player.current.width / 2,
-          player.current.y + player.current.height,
-          "#ff6600",
-          2,
-          "exhaust"
-        );
-      }
-    } else if (keys.current["ArrowDown"] || keys.current["s"]) {
-      player.current.speed = Math.max(
-        player.current.speed - player.current.acceleration * 2,
-        -player.current.maxSpeed * 0.5
-      );
-    } else {
-      player.current.speed *= 1 - player.current.friction;
-    }
+    handleInput();
+    gameTimer.current++;
 
-    if (keys.current["ArrowLeft"] || keys.current["a"]) {
-      player.current.rotation -=
-        player.current.rotationSpeed * Math.abs(player.current.speed) * 0.1;
-    }
-    if (keys.current["ArrowRight"] || keys.current["d"]) {
-      player.current.rotation +=
-        player.current.rotationSpeed * Math.abs(player.current.speed) * 0.1;
-    }
-
-    // Update player position
-    player.current.x +=
-      Math.cos(player.current.rotation) * player.current.speed;
-    player.current.y +=
-      Math.sin(player.current.rotation) * player.current.speed;
-
-    // Keep player in bounds
-    player.current.x = Math.max(
-      50,
-      Math.min(canvas.width - 50, player.current.x)
-    );
-    player.current.y = Math.max(
-      50,
-      Math.min(canvas.height - 50, player.current.y)
-    );
-
-    // Update opponents
-    opponents.current.forEach((opponent, index) => {
-      // Opponent AI (simple follow-the-track)
-      const targetSegment =
-        trackSegments.current[Math.floor(opponent.trackPosition)];
-      const nextSegment =
-        trackSegments.current[
-          Math.floor(opponent.trackPosition + 1) % trackSegments.current.length
-        ];
-      const targetX = targetSegment.x;
-      const targetY = targetSegment.y;
-
-      const angleToTarget = Math.atan2(
-        targetY - opponent.y,
-        targetX - opponent.x
-      );
-      opponent.x += Math.cos(angleToTarget) * opponent.speed;
-      opponent.y += Math.sin(angleToTarget) * opponent.speed;
-
-      opponent.trackPosition =
-        (opponent.trackPosition + 0.1) % trackSegments.current.length;
-
-      // Update opponent lap progress
-      const distanceToNext = Math.sqrt(
-        Math.pow(nextSegment.x - opponent.x, 2) +
-          Math.pow(nextSegment.y - opponent.y, 2)
-      );
-      if (distanceToNext < 10) {
-        opponent.lapProgress = opponent.lapProgress + 1;
+    // Update road lines
+    roadLines.current.forEach((line) => {
+      line.y += gameSpeed.current;
+      if (line.y > 500) {
+        line.y = -30;
       }
     });
 
-    // Simple lap detection (when player passes start line)
-    const startLineY = 400;
-    if (
-      Math.abs(player.current.y - startLineY) < 20 &&
-      player.current.x > canvas.width / 2
-    ) {
-      setGameState((prev) => ({ ...prev, lap: prev.lap + 1 }));
-      if (gameState.lap >= 3) {
-        setGameState((prev) => ({
-          ...prev,
-          gameRunning: false,
-          raceFinished: true,
-        }));
+    // Update obstacles
+    obstacles.current.forEach((obstacle, index) => {
+      obstacle.y += gameSpeed.current;
+
+      // Remove obstacles that have passed
+      if (obstacle.y > 500) {
+        obstacles.current.splice(index, 1);
+        // Add new obstacle
+        const lane = lanes[Math.floor(Math.random() * lanes.length)];
+        obstacles.current.push({
+          x: lane - 25,
+          y: -100 - Math.random() * 100,
+          width: 50,
+          height: 80,
+          lane: lane,
+        });
       }
+
+      // Check collision with player
+      if (checkCollision(player.current, obstacle)) {
+        createParticles(
+          player.current.x + player.current.width / 2,
+          player.current.y + player.current.height / 2,
+          "#ff4444",
+          12
+        );
+        setInternalGameState((prev) => {
+          const newLives = prev.lives - 1;
+          const newState = {
+            ...prev,
+            lives: newLives,
+            gameRunning: newLives > 0,
+            gameOver: newLives <= 0,
+          };
+          onGameStateChange?.(newState);
+          return newState;
+        });
+
+        // Reset player position
+        player.current.x = 375;
+        player.current.targetX = 375;
+      }
+    });
+
+    // Update power-ups
+    powerUps.current.forEach((powerUp, index) => {
+      powerUp.y += gameSpeed.current;
+
+      // Remove power-ups that have passed
+      if (powerUp.y > 500) {
+        powerUps.current.splice(index, 1);
+        // Add new power-up occasionally
+        if (Math.random() < 0.3) {
+          const lane = lanes[Math.floor(Math.random() * lanes.length)];
+          powerUps.current.push({
+            x: lane - 15,
+            y: -200 - Math.random() * 100,
+            width: 30,
+            height: 30,
+            type: Math.random() > 0.5 ? "speed" : "points",
+          });
+        }
+      }
+
+      // Check collision with player
+      if (checkCollision(player.current, powerUp)) {
+        createParticles(
+          powerUp.x + powerUp.width / 2,
+          powerUp.y + powerUp.height / 2,
+          "#00ff88",
+          8
+        );
+        powerUps.current.splice(index, 1);
+
+        if (powerUp.type === "speed") {
+          gameSpeed.current = Math.max(2, gameSpeed.current - 1);
+          setTimeout(() => (gameSpeed.current += 1), 3000);
+        }
+
+        setInternalGameState((prev) => {
+          const newState = {
+            ...prev,
+            score: prev.score + (powerUp.type === "points" ? 50 : 25),
+          };
+          onGameStateChange?.(newState);
+          return newState;
+        });
+      }
+    });
+
+    // Update particles
+    particles.current.forEach((particle, index) => {
+      particle.x += particle.velocityX;
+      particle.y += particle.velocityY;
+      particle.velocityY += 0.2;
+      particle.life--;
+
+      if (particle.life <= 0) {
+        particles.current.splice(index, 1);
+      }
+    });
+
+    // Update score and speed
+    scoreCounter.current++;
+    if (scoreCounter.current % 120 === 0) {
+      // Every 2 seconds
+      setInternalGameState((prev) => {
+        const newState = { ...prev, score: prev.score + 5 };
+        onGameStateChange?.(newState);
+        return newState;
+      });
     }
-  }, [gameState.gameRunning, gameState.lap]);
+
+    // Increase difficulty over time
+    if (scoreCounter.current % 600 === 0) {
+      // Every 10 seconds
+      gameSpeed.current += 0.3;
+      setInternalGameState((prev) => {
+        const newLevel = Math.floor(prev.score / 200) + 1;
+        const newState = { ...prev, level: newLevel };
+        onGameStateChange?.(newState);
+        return newState;
+      });
+    }
+  }, [internalGameState.gameRunning, handleInput, onGameStateChange]);
 
   // Render game
   const render = useCallback(() => {
@@ -219,154 +295,400 @@ const NeonRacing = () => {
 
     const ctx = canvas.getContext("2d");
 
-    // Clear canvas with neon background
-    const gradient = ctx.createRadialGradient(
-      canvas.width / 2,
-      canvas.height / 2,
-      0,
-      canvas.width / 2,
-      canvas.height / 2,
-      canvas.width
-    );
-    gradient.addColorStop(0, "#0a0a0a");
-    gradient.addColorStop(1, "#1a0a1a");
+    // Clear canvas with neon gradient background
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, "#000428");
+    gradient.addColorStop(1, "#004e92");
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw track outline
+    // Draw road
+    ctx.fillStyle = "#1a1a1a";
+    ctx.fillRect(150, 0, 500, canvas.height);
+
+    // Draw road edges with neon glow
     ctx.strokeStyle = "#00ffff";
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 4;
     ctx.shadowColor = "#00ffff";
     ctx.shadowBlur = 10;
     ctx.beginPath();
-
-    trackSegments.current.forEach((segment, index) => {
-      if (index === 0) {
-        ctx.moveTo(segment.x, segment.y);
-      } else {
-        ctx.lineTo(segment.x, segment.y);
-      }
-    });
-    ctx.closePath();
+    ctx.moveTo(150, 0);
+    ctx.lineTo(150, canvas.height);
     ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // Draw inner track
-    ctx.strokeStyle = "#ff00ff";
-    ctx.lineWidth = 2;
-    ctx.shadowColor = "#ff00ff";
-    ctx.shadowBlur = 8;
     ctx.beginPath();
-
-    trackSegments.current.forEach((segment, index) => {
-      const innerX = segment.x + Math.cos(segment.angle + Math.PI) * 40;
-      const innerY = segment.y + Math.sin(segment.angle + Math.PI) * 40;
-
-      if (index === 0) {
-        ctx.moveTo(innerX, innerY);
-      } else {
-        ctx.lineTo(innerX, innerY);
-      }
-    });
-    ctx.closePath();
+    ctx.moveTo(650, 0);
+    ctx.lineTo(650, canvas.height);
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // Draw start/finish line
+    // Draw lane dividers
     ctx.strokeStyle = "#ffff00";
-    ctx.lineWidth = 4;
-    ctx.shadowColor = "#ffff00";
-    ctx.shadowBlur = 12;
-    ctx.beginPath();
-    ctx.moveTo(150, 400);
-    ctx.lineTo(250, 400);
-    ctx.stroke();
-    ctx.shadowBlur = 0;
-
-    // Draw grid pattern
-    ctx.strokeStyle = "rgba(0, 255, 255, 0.1)";
-    ctx.lineWidth = 1;
-    for (let i = 0; i < canvas.width; i += 30) {
+    ctx.lineWidth = 2;
+    ctx.setLineDash([15, 15]);
+    for (let i = 1; i < 5; i++) {
+      const x = 150 + i * 100;
       ctx.beginPath();
-      ctx.moveTo(i, 0);
-      ctx.lineTo(i, canvas.height);
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
       ctx.stroke();
     }
-    for (let i = 0; i < canvas.height; i += 30) {
-      ctx.beginPath();
-      ctx.moveTo(0, i);
-      ctx.lineTo(canvas.width, i);
-      ctx.stroke();
-    }
+    ctx.setLineDash([]);
 
-    // Draw particles
-    particles.current.forEach((particle) => {
-      const alpha = particle.life / particle.maxLife;
-      ctx.fillStyle = particle.color;
-      ctx.globalAlpha = alpha;
+    // Draw road lines (moving effect)
+    roadLines.current.forEach((line) => {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(line.x, line.y, line.width, line.height);
+    });
 
-      if (particle.type === "exhaust") {
-        ctx.shadowColor = particle.color;
-        ctx.shadowBlur = 8;
+    // Draw obstacles (enemy cars)
+    obstacles.current.forEach((obstacle) => {
+      // Car body
+      ctx.fillStyle = "#ff0040";
+      ctx.shadowColor = "#ff0040";
+      ctx.shadowBlur = 15;
+      ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+
+      // Car details
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(obstacle.x + 5, obstacle.y + 10, 10, 8); // Windshield
+      ctx.fillRect(obstacle.x + 35, obstacle.y + 10, 10, 8);
+
+      // Wheels
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(obstacle.x - 3, obstacle.y + 10, 6, 15);
+      ctx.fillRect(obstacle.x - 3, obstacle.y + 55, 6, 15);
+      ctx.fillRect(obstacle.x + 47, obstacle.y + 10, 6, 15);
+      ctx.fillRect(obstacle.x + 47, obstacle.y + 55, 6, 15);
+      ctx.shadowBlur = 0;
+    });
+
+    // Draw power-ups
+    powerUps.current.forEach((powerUp) => {
+      if (powerUp.type === "speed") {
+        ctx.fillStyle = "#00ff40";
+        ctx.shadowColor = "#00ff40";
+      } else {
+        ctx.fillStyle = "#ffff00";
+        ctx.shadowColor = "#ffff00";
       }
 
-      ctx.fillRect(particle.x, particle.y, particle.size, particle.size);
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.arc(
+        powerUp.x + powerUp.width / 2,
+        powerUp.y + powerUp.height / 2,
+        powerUp.width / 2,
+        0,
+        Math.PI * 2
+      );
+      ctx.fill();
+
+      // Power-up symbol
+      ctx.fillStyle = "#000000";
+      ctx.font = "14px monospace";
+      ctx.textAlign = "center";
+      const symbol = powerUp.type === "speed" ? "⚡" : "★";
+      ctx.fillText(
+        symbol,
+        powerUp.x + powerUp.width / 2,
+        powerUp.y + powerUp.height / 2 + 5
+      );
       ctx.shadowBlur = 0;
-      ctx.globalAlpha = 1;
     });
 
-    // Draw opponents
-    opponents.current.forEach((opponent) => {
-      ctx.fillStyle = opponent.color;
-      ctx.shadowColor = opponent.color;
-      ctx.shadowBlur = 12;
-      ctx.fillRect(opponent.x, opponent.y, opponent.width, opponent.height);
-      ctx.shadowBlur = 0;
-    });
-
-    // Draw player
-    ctx.save();
-    ctx.translate(
-      player.current.x + player.current.width / 2,
-      player.current.y + player.current.height / 2
-    );
-    ctx.rotate(player.current.rotation);
-
-    const playerGradient = ctx.createLinearGradient(-15, -20, -15, 20);
-    playerGradient.addColorStop(0, "#00ffff");
-    playerGradient.addColorStop(0.5, "#0080ff");
-    playerGradient.addColorStop(1, "#0040ff");
-
-    ctx.fillStyle = playerGradient;
-    ctx.shadowColor = "#00ffff";
+    // Draw player car
+    ctx.fillStyle = "#00ff88";
+    ctx.shadowColor = "#00ff88";
     ctx.shadowBlur = 20;
     ctx.fillRect(
-      -player.current.width / 2,
-      -player.current.height / 2,
+      player.current.x,
+      player.current.y,
       player.current.width,
       player.current.height
     );
-    ctx.shadowBlur = 0;
-    ctx.restore();
 
-    // Draw speed lines when going fast
-    if (Math.abs(player.current.speed) > 5) {
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.3)";
-      ctx.lineWidth = 2;
-      for (let i = 0; i < 10; i++) {
-        const x = Math.random() * canvas.width;
-        const y = Math.random() * canvas.height;
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x - player.current.speed * 3, y);
-        ctx.stroke();
-      }
+    // Player car details
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(player.current.x + 5, player.current.y + 20, 40, 15); // Windshield
+    ctx.fillRect(player.current.x + 5, player.current.y + 45, 40, 10); // Side windows
+
+    // Player wheels with glow
+    ctx.fillStyle = "#ff00ff";
+    ctx.shadowColor = "#ff00ff";
+    ctx.shadowBlur = 10;
+    ctx.fillRect(player.current.x - 3, player.current.y + 10, 6, 15);
+    ctx.fillRect(player.current.x - 3, player.current.y + 55, 6, 15);
+    ctx.fillRect(player.current.x + 47, player.current.y + 10, 6, 15);
+    ctx.fillRect(player.current.x + 47, player.current.y + 55, 6, 15);
+    ctx.shadowBlur = 0;
+
+    // Draw particles
+    particles.current.forEach((particle) => {
+      ctx.globalAlpha = particle.life / 30;
+      ctx.fillStyle = particle.color;
+      ctx.fillRect(
+        particle.x - particle.size / 2,
+        particle.y - particle.size / 2,
+        particle.size,
+        particle.size
+      );
+    });
+    ctx.globalAlpha = 1;
+
+    // Draw neon speed lines
+    ctx.strokeStyle = "#00ffff";
+    ctx.globalAlpha = 0.6;
+    ctx.lineWidth = 2;
+    for (let i = 0; i < 10; i++) {
+      const x = Math.random() * canvas.width;
+      const y = Math.random() * canvas.height;
+      ctx.beginPath();
+      ctx.moveTo(x, y);
+      ctx.lineTo(x - gameSpeed.current * 2, y + gameSpeed.current * 4);
+      ctx.stroke();
     }
+    ctx.globalAlpha = 1;
+
+    // Draw HUD
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+    ctx.fillRect(10, 10, 200, 80);
+    ctx.strokeStyle = "#00ffff";
+    ctx.lineWidth = 2;
+    ctx.strokeRect(10, 10, 200, 80);
+
+    ctx.fillStyle = "#00ffff";
+    ctx.font = "16px monospace";
+    ctx.textAlign = "left";
+    ctx.fillText(`Speed: ${Math.floor(gameSpeed.current * 20)} km/h`, 20, 30);
+    ctx.fillText(`Distance: ${Math.floor(scoreCounter.current / 10)}m`, 20, 50);
+    ctx.fillText(`Items: ${inventory.current?.length || 0}`, 20, 70);
   }, []);
+
+  // Lane switching with touch
+  const switchLane = useCallback(
+    (direction) => {
+      if (!internalGameState.gameRunning) return;
+
+      const currentLaneIndex = lanes.findIndex(
+        (lane) => Math.abs(lane - 25 - player.current.x) < 30
+      );
+      let newLaneIndex = currentLaneIndex;
+
+      if (direction === "left" && currentLaneIndex > 0) {
+        newLaneIndex = currentLaneIndex - 1;
+      } else if (direction === "right" && currentLaneIndex < lanes.length - 1) {
+        newLaneIndex = currentLaneIndex + 1;
+      }
+
+      player.current.targetX = lanes[newLaneIndex] - 25;
+    },
+    [internalGameState.gameRunning]
+  );
+
+  // Handle canvas touch for lane switching
+  const handleCanvasTouch = useCallback(
+    (e) => {
+      if (!internalGameState.gameRunning) return;
+
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+
+      let clientX;
+      if (e.touches && e.touches[0]) {
+        clientX = e.touches[0].clientX;
+      } else {
+        clientX = e.clientX;
+      }
+
+      const clickX = (clientX - rect.left) * scaleX;
+
+      // Determine which lane to move to based on touch position
+      let targetLane = 2; // Default middle lane
+      if (clickX < 250) targetLane = 0;
+      else if (clickX < 350) targetLane = 1;
+      else if (clickX < 450) targetLane = 2;
+      else if (clickX < 550) targetLane = 3;
+      else targetLane = 4;
+
+      player.current.targetX = lanes[targetLane] - 25;
+      e.preventDefault();
+    },
+    [internalGameState.gameRunning]
+  );
+
+  const gameTimer = useRef(0);
+  const inventory = useRef([]);
+
+  // Game update loop
+  useEffect(() => {
+    if (!internalGameState.gameRunning) return;
+
+    gameTimer.current++;
+
+    // Update obstacles
+    obstacles.current.forEach((obstacle, index) => {
+      obstacle.y += gameSpeed.current;
+
+      // Remove obstacles that have passed
+      if (obstacle.y > 500) {
+        obstacles.current.splice(index, 1);
+        // Add new obstacle
+        const lane = lanes[Math.floor(Math.random() * lanes.length)];
+        obstacles.current.push({
+          x: lane - 25,
+          y: -100 - Math.random() * 100,
+          width: 50,
+          height: 80,
+          lane: lane,
+        });
+      }
+
+      // Check collision with player
+      if (checkCollision(player.current, obstacle)) {
+        createParticles(
+          player.current.x + player.current.width / 2,
+          player.current.y + player.current.height / 2,
+          "#ff4444",
+          12
+        );
+        setInternalGameState((prev) => {
+          const newLives = prev.lives - 1;
+          const newState = {
+            ...prev,
+            lives: newLives,
+            gameRunning: newLives > 0,
+            gameOver: newLives <= 0,
+          };
+          onGameStateChange?.(newState);
+          return newState;
+        });
+
+        // Reset player position
+        player.current.x = 375;
+        player.current.targetX = 375;
+      }
+    });
+
+    // Update power-ups
+    powerUps.current.forEach((powerUp, index) => {
+      powerUp.y += gameSpeed.current;
+
+      if (powerUp.y > 500) {
+        powerUps.current.splice(index, 1);
+        if (Math.random() < 0.3) {
+          const lane = lanes[Math.floor(Math.random() * lanes.length)];
+          powerUps.current.push({
+            x: lane - 15,
+            y: -200 - Math.random() * 100,
+            width: 30,
+            height: 30,
+            type: Math.random() > 0.5 ? "speed" : "points",
+          });
+        }
+      }
+
+      if (checkCollision(player.current, powerUp)) {
+        createParticles(
+          powerUp.x + powerUp.width / 2,
+          powerUp.y + powerUp.height / 2,
+          "#00ff88",
+          8
+        );
+        powerUps.current.splice(index, 1);
+        inventory.current.push(powerUp);
+
+        setInternalGameState((prev) => {
+          const newState = {
+            ...prev,
+            score: prev.score + (powerUp.type === "points" ? 50 : 25),
+          };
+          onGameStateChange?.(newState);
+          return newState;
+        });
+      }
+    });
+
+    // Update particles
+    particles.current.forEach((particle, index) => {
+      particle.x += particle.velocityX;
+      particle.y += particle.velocityY;
+      particle.velocityY += 0.2;
+      particle.life--;
+
+      if (particle.life <= 0) {
+        particles.current.splice(index, 1);
+      }
+    });
+
+    // Update score and speed
+    scoreCounter.current++;
+    if (scoreCounter.current % 120 === 0) {
+      setInternalGameState((prev) => {
+        const newState = { ...prev, score: prev.score + 5 };
+        onGameStateChange?.(newState);
+        return newState;
+      });
+    }
+
+    if (scoreCounter.current % 600 === 0) {
+      gameSpeed.current += 0.3;
+      setInternalGameState((prev) => {
+        const newLevel = Math.floor(prev.score / 200) + 1;
+        const newState = { ...prev, level: newLevel };
+        onGameStateChange?.(newState);
+        return newState;
+      });
+    }
+  }, [internalGameState.gameRunning, onGameStateChange]);
+
+  // Handle parent control changes
+  useEffect(() => {
+    if (isPlaying && !isPaused) {
+      if (
+        !internalGameState.gameRunning &&
+        !internalGameState.gameOver &&
+        !internalGameState.gameWon
+      ) {
+        initGame();
+        setInternalGameState({
+          score: 0,
+          lives: 3,
+          level: 1,
+          gameRunning: true,
+          gameOver: false,
+          gameWon: false,
+        });
+      } else if (!internalGameState.gameRunning && internalGameState.gameOver) {
+        initGame();
+        setInternalGameState({
+          score: 0,
+          lives: 3,
+          level: 1,
+          gameRunning: true,
+          gameOver: false,
+          gameWon: false,
+        });
+      } else {
+        setInternalGameState((prev) => ({ ...prev, gameRunning: true }));
+      }
+    } else {
+      setInternalGameState((prev) => ({ ...prev, gameRunning: false }));
+    }
+  }, [
+    isPlaying,
+    isPaused,
+    initGame,
+    internalGameState.gameOver,
+    internalGameState.gameWon,
+    internalGameState.gameRunning,
+  ]);
 
   // Game loop
   useEffect(() => {
-    if (gameState.gameRunning) {
+    if (internalGameState.gameRunning && !isPaused) {
       gameLoopRef.current = setInterval(() => {
         updateGame();
         render();
@@ -376,9 +698,9 @@ const NeonRacing = () => {
     }
 
     return () => clearInterval(gameLoopRef.current);
-  }, [gameState.gameRunning, updateGame, render]);
+  }, [internalGameState.gameRunning, isPaused, updateGame, render]);
 
-  // Keyboard handlers
+  // Keyboard and touch handlers
   useEffect(() => {
     const handleKeyDown = (e) => {
       keys.current[e.key] = true;
@@ -388,141 +710,72 @@ const NeonRacing = () => {
       keys.current[e.key] = false;
     };
 
+    const canvas = canvasRef.current;
     window.addEventListener("keydown", handleKeyDown);
     window.addEventListener("keyup", handleKeyUp);
+
+    if (canvas) {
+      canvas.addEventListener("click", handleCanvasTouch);
+      canvas.addEventListener("touchstart", handleCanvasTouch, {
+        passive: false,
+      });
+    }
 
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
+      if (canvas) {
+        canvas.removeEventListener("click", handleCanvasTouch);
+        canvas.removeEventListener("touchstart", handleCanvasTouch);
+      }
     };
-  }, []);
-
-  // Start game
-  const startGame = () => {
-    initGame();
-    setGameState((prev) => ({
-      ...prev,
-      score: 0,
-      speed: 0,
-      lap: 1,
-      position: 1,
-      gameRunning: true,
-      gameOver: false,
-      raceFinished: false,
-    }));
-  };
-
-  // Reset game
-  const resetGame = () => {
-    setGameState((prev) => ({
-      ...prev,
-      score: 0,
-      speed: 0,
-      lap: 1,
-      position: 1,
-      gameRunning: false,
-      gameOver: false,
-      raceFinished: false,
-    }));
-  };
+  }, [handleCanvasTouch]);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900 p-4">
-      <div className="relative">
-        {/* Game Canvas */}
-        <canvas
-          ref={canvasRef}
-          width={800}
-          height={600}
-          className="border-2 border-cyan-500 rounded-lg shadow-[0_0_20px_rgba(0,255,255,0.5)]"
-        />
+    <div className="w-full h-full flex flex-col items-center justify-center">
+      <canvas
+        ref={canvasRef}
+        width={800}
+        height={500}
+        className="max-w-full max-h-full border-2 border-cyan-400 rounded-lg shadow-lg cursor-pointer touch-none"
+        style={{
+          boxShadow: "0 0 20px rgba(34, 211, 238, 0.5)",
+          background: "linear-gradient(135deg, #000428 0%, #004e92 100%)",
+          touchAction: "manipulation",
+        }}
+      />
 
-        {/* UI Overlay */}
-        <div className="absolute top-4 left-4 text-white">
-          <div className="bg-black bg-opacity-70 p-3 rounded-lg border border-cyan-500">
-            <div className="text-lg font-bold">Score: {gameState.score}</div>
-            <div className="text-lg font-bold">
-              Speed: {gameState.speed.toFixed(1)}
-            </div>
-            <div className="text-lg font-bold">Lap: {gameState.lap}/3</div>
-            <div className="text-sm text-cyan-400">
-              Position: {gameState.position}/6
-            </div>
-          </div>
-        </div>
-
-        {/* Speed indicator */}
-        <div className="absolute bottom-4 right-4">
-          <div className="bg-black bg-opacity-70 p-2 rounded-lg border border-cyan-500">
-            <div className="text-white text-sm mb-1">Speed</div>
-            <div className="w-20 h-3 bg-gray-600 rounded-full">
-              <div
-                className="h-full bg-gradient-to-r from-green-500 via-yellow-500 to-red-500 rounded-full transition-all"
-                style={{
-                  width: `${Math.min((gameState.speed / 8) * 100, 100)}%`,
-                }}
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Race Finished Screen */}
-        {gameState.raceFinished && (
-          <div className="absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center rounded-lg">
-            <div className="bg-slate-800 p-8 rounded-xl border-2 border-yellow-500 text-center shadow-[0_0_30px_rgba(255,215,0,0.5)]">
-              <h2 className="text-3xl font-bold text-white mb-4">
-                Race Complete!
-              </h2>
-              <p className="text-xl text-gray-300 mb-2">
-                Final Score: {gameState.score}
-              </p>
-              <p className="text-lg text-cyan-400 mb-6">
-                Position: {gameState.position}/6
-              </p>
-              <div className="space-x-4">
-                <button
-                  onClick={startGame}
-                  className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:from-cyan-600 hover:to-blue-600 transition-all shadow-[0_0_15px_rgba(0,255,255,0.3)]"
-                >
-                  Race Again
-                </button>
-                <button
-                  onClick={resetGame}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg hover:from-purple-600 hover:to-pink-600 transition-all shadow-[0_0_15px_rgba(217,70,239,0.3)]"
-                >
-                  Main Menu
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Start Screen */}
-        {!gameState.gameRunning && !gameState.raceFinished && (
-          <div className="absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center rounded-lg">
-            <div className="bg-slate-800 p-8 rounded-xl border-2 border-cyan-500 text-center shadow-[0_0_30px_rgba(0,255,255,0.5)]">
-              <h1 className="text-4xl font-bold text-white mb-6 text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">
-                Neon Racing
-              </h1>
-              <p className="text-gray-300 mb-6">
-                Race through the neon track! Complete 3 laps as fast as
-                possible!
-              </p>
-              <button
-                onClick={startGame}
-                className="px-8 py-4 bg-gradient-to-r from-cyan-500 to-purple-500 text-white text-xl rounded-lg hover:from-cyan-600 hover:to-purple-600 transition-all shadow-[0_0_20px_rgba(0,255,255,0.4)]"
-              >
-                Start Race
-              </button>
-            </div>
-          </div>
-        )}
+      {/* Mobile Controls */}
+      <div className="flex md:hidden mt-4 space-x-4">
+        <button
+          onTouchStart={() => switchLane("left")}
+          onClick={() => switchLane("left")}
+          className="px-6 py-3 bg-cyan-500 text-white rounded-lg font-semibold active:bg-cyan-600 select-none"
+          style={{ touchAction: "manipulation" }}
+        >
+          ← LEFT
+        </button>
+        <button
+          onTouchStart={() => switchLane("right")}
+          onClick={() => switchLane("right")}
+          className="px-6 py-3 bg-cyan-500 text-white rounded-lg font-semibold active:bg-cyan-600 select-none"
+          style={{ touchAction: "manipulation" }}
+        >
+          RIGHT →
+        </button>
       </div>
 
-      {/* Controls */}
-      <div className="mt-6 text-center text-gray-400 space-y-1">
-        <p>Arrow Keys or WASD to control your vehicle</p>
-        <p>↑/W: Accelerate, ↓/S: Brake, ←/→ or A/D: Steer</p>
+      {/* Instructions */}
+      <div className="mt-2 text-center text-gray-400 text-sm">
+        <p className="md:hidden">
+          Tap screen lanes or use buttons to switch lanes
+        </p>
+        <p className="hidden md:block">
+          Use arrow keys or click lanes to avoid obstacles
+        </p>
+        <p className="text-xs mt-1">
+          ⚡ Green = Speed Boost • ★ Yellow = Points
+        </p>
       </div>
     </div>
   );
