@@ -16,6 +16,9 @@ import BlogsPage from "./pages/BlogsPage";
 import BlogDetails from "./pages/BlogDetails";
 import AboutPage from "./pages/AboutPage";
 import ContactPage from "./pages/ContactPage";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsAndCondition from "./pages/TermsAndCondition";
+import CookiePolicy from "./pages/CookiePolicy";
 
 // SEO component for dynamic meta tags
 import SEOHead from "./components/SEOHead";
@@ -65,6 +68,13 @@ function App() {
               <Route path="/blog/:blogId" element={<BlogDetails />} />
               <Route path="/about" element={<AboutPage />} />
               <Route path="/contact" element={<ContactPage />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route
+                path="/terms-and-condition"
+                element={<TermsAndCondition />}
+              />
+              <Route path="/cookie-policy" element={<CookiePolicy />} />
+
               {/* 404 fallback */}
               <Route
                 path="*"
