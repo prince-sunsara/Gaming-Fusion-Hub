@@ -1,5 +1,4 @@
 // About page component
-import React from "react";
 import { Link } from "react-router-dom";
 import {
   Gamepad2,
@@ -11,7 +10,6 @@ import {
   Award,
   Rocket,
   Code,
-  Palette,
   Shield,
   Star,
 } from "lucide-react";

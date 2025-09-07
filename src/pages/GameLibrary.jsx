@@ -1,5 +1,5 @@
 // Game Library page with search, filter, and layout options
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Search,
@@ -9,18 +9,11 @@ import {
   X,
   ChevronDown,
   SortAsc,
-  SortDesc,
   Star,
   Users,
-  Clock,
 } from "lucide-react";
 import GameCard from "../components/GameCard";
-import {
-  games,
-  gameCategories,
-  getGamesByCategory,
-  searchGames,
-} from "../data/games";
+import { games, gameCategories, getGamesByCategory } from "../data/games";
 
 const GameLibrary = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -179,7 +172,7 @@ const GameLibrary = () => {
               <div className="relative">
                 <button
                   onClick={() => setShowFilters(!showFilters)}
-                  className="flex items-center space-x-2 px-4 py-3 bg-dark-700 hover:bg-dark-600 border border-dark-600 hover:border-primary-500/50 rounded-lg text-white transition-all duration-300"
+                  className="flex items-center space-x-2  px-2 sm:px-4 py-3 bg-dark-700 hover:bg-dark-600 border border-dark-600 hover:border-primary-500/50 rounded-lg text-white transition-all duration-300"
                 >
                   <Filter className="w-5 h-5" />
                   <span className="hidden sm:inline">
