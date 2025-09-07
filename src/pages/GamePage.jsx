@@ -176,7 +176,7 @@ const GamePage = () => {
           <div className="xl:col-span-2">
             {/* Game Header */}
             <div className="bg-slate-800/50 backdrop-blur-md rounded-xl border border-slate-700 p-6 mb-6">
-              <div className="flex items-start justify-between mb-4">
+              <div className="flex flex-col sm:flex-row items-start justify-between mb-4">
                 <div>
                   <div className="flex items-center space-x-3 mb-2">
                     <span className="text-4xl">{game.icon}</span>
@@ -209,7 +209,7 @@ const GamePage = () => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 mt-4 sm:mt-0">
                   <button
                     onClick={() => setIsFavorited(!isFavorited)}
                     className={`p-3 rounded-lg transition-all duration-300 ${
